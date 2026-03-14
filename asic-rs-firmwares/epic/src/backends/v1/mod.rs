@@ -2,7 +2,7 @@ use std::{collections::HashMap, net::IpAddr, str::FromStr, time::Duration};
 
 use anyhow;
 use asic_rs_core::{
-    config::pools::PoolGroupConfig,
+    config::{pools::PoolGroupConfig, scaling::ScalingConfig},
     data::{
         board::{BoardData, ChipData, MinerControlBoard},
         collector::{
@@ -57,6 +57,51 @@ impl PowerPlayV1 {
                 })
             })
             .collect()
+    }
+    fn value_as_usize(value: &Value) -> Option<usize> {
+        value
+            .as_u64()
+            .and_then(|v| usize::try_from(v).ok())
+            .or_else(|| {
+                value
+                    .as_i64()
+                    .and_then(|v| u64::try_from(v).ok())
+                    .and_then(|v| usize::try_from(v).ok())
+            })
+    }
+
+    fn parse_scaling_config_from_stats(stats: &Value) -> Option<ScalingConfig> {
+        let minimum = stats
+            .get("Min Throttle Target")
+            .or_else(|| stats.get("min"))
+            .and_then(Self::value_as_usize)?;
+        let step = stats
+            .get("Throttle Step")
+            .or_else(|| stats.get("step"))
+            .and_then(Self::value_as_usize)?;
+
+        Some(ScalingConfig::new(step, minimum))
+    }
+
+    fn parse_scaling_config_from_summary(summary: &Value) -> Option<ScalingConfig> {
+        let perpetual = summary.get("PerpetualTune")?;
+
+        if let Some(current_algo) = perpetual.get("Current Algorithm").and_then(Value::as_str)
+            && let Some(stats) = perpetual.pointer(&format!("/Algorithm/{current_algo}"))
+            && let Some(config) = Self::parse_scaling_config_from_stats(stats)
+        {
+            return Some(config);
+        }
+
+        if let Some(algorithms) = perpetual.get("Algorithm").and_then(Value::as_object) {
+            for stats in algorithms.values() {
+                if let Some(config) = Self::parse_scaling_config_from_stats(stats) {
+                    return Some(config);
+                }
+            }
+        }
+
+        None
     }
 }
 
@@ -968,6 +1013,23 @@ impl SupportsPoolsConfig for PowerPlayV1 {
 }
 
 #[async_trait]
+impl SupportsScalingConfig for PowerPlayV1 {
+    async fn get_scaling_config(&self) -> anyhow::Result<ScalingConfig> {
+        let summary = self
+            .web
+            .send_command("summary", false, None, Method::GET)
+            .await?;
+
+        Self::parse_scaling_config_from_summary(&summary).ok_or_else(|| {
+            anyhow::anyhow!("Failed to parse scaling config from summary perpetual tune data")
+        })
+    }
+    fn supports_scaling_config(&self) -> bool {
+        true
+    }
+}
+
+#[async_trait]
 impl Restart for PowerPlayV1 {
     async fn restart(&self) -> anyhow::Result<bool> {
         self.web
@@ -1104,6 +1166,11 @@ mod tests {
         println!(
             "pools {}",
             serde_json::to_string_pretty(&miner.get_pools_config().await?)?
+        );
+
+        println!(
+            "scalingconfig {}",
+            serde_json::to_string_pretty(&miner.get_scaling_config().await?)?
         );
 
         assert_eq!(miner_data.ip, ip);

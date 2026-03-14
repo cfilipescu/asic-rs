@@ -14,7 +14,7 @@ use serde_json::Value;
 use tracing;
 
 use crate::{
-    config::pools::PoolGroupConfig,
+    config::{pools::PoolGroupConfig, scaling::ScalingConfig},
     data::{
         board::{BoardData, MinerControlBoard},
         collector::{DataCollector, DataField, DataLocation},
@@ -673,4 +673,16 @@ pub trait SupportsPoolsConfig: GetPools {
             .collect())
     }
     fn supports_pools_config(&self) -> bool;
+}
+
+#[async_trait]
+pub trait SupportsScalingConfig {
+    #[allow(unused_variables)]
+    async fn set_scaling_config(&self, config: ScalingConfig) -> anyhow::Result<bool> {
+        anyhow::bail!("Setting scaling is not supported on this platform");
+    }
+    async fn get_scaling_config(&self) -> anyhow::Result<ScalingConfig> {
+        anyhow::bail!("Getting scaling is not supported on this platform");
+    }
+    fn supports_scaling_config(&self) -> bool;
 }
