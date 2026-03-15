@@ -1168,10 +1168,10 @@ mod tests {
             serde_json::to_string_pretty(&miner.get_pools_config().await?)?
         );
 
-        println!(
-            "scalingconfig {}",
-            serde_json::to_string_pretty(&miner.get_scaling_config().await?)?
-        );
+        // println!(
+        //     "scalingconfig {}",
+        //     serde_json::to_string_pretty(&miner.get_scaling_config().await?)?
+        // );
 
         assert_eq!(miner_data.ip, ip);
         assert!(miner_data.timestamp > 0);
