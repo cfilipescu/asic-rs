@@ -205,7 +205,10 @@ class Miner:
     async def set_fan_config(self, config: FanConfig) -> bool | None:
         return await self.__inner.set_fan_config(config)
 
-    async def upgrade_firmware(self, path: str | os.PathLike[str]) -> None:
+    async def upgrade_firmware(
+        self,
+        path: str | os.PathLike[str],
+    ) -> bool:
         return await self.__inner.upgrade_firmware(path)
 
     @property
