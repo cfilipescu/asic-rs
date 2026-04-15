@@ -33,10 +33,14 @@ members = [
     "asic-rs-firmwares/nerdaxe",
     "asic-rs-firmwares/vnish",
     "asic-rs-firmwares/whatsminer",
+    "asic-rs-pydantic",
+    "asic-rs-pydantic-macros",
 ]
 
 [workspace.dependencies]
 asic-rs-core = { path = "asic-rs-core", version = "0.4.2" }
+asic-rs-pydantic = { path = "asic-rs-pydantic", version = "0.4.2" }
+asic-rs-pydantic-macros = { path = "asic-rs-pydantic-macros", version = "0.4.2" }
 
 asic-rs-makes-antminer = { path = "asic-rs-makes/antminer", version = "0.4.2" }
 asic-rs-makes-auradine = { path = "asic-rs-makes/auradine", version = "0.4.2" }
@@ -140,9 +144,11 @@ vnish = ["dep:asic-rs-firmwares-vnish"]
 whatsminer = ["dep:asic-rs-firmwares-whatsminer"]
 
 python = [
+    "dep:asic-rs-pydantic",
     "dep:pyo3",
     "dep:pyo3-async-runtimes",
     "dep:pyo3-log",
+    "asic-rs-core/python",
     "asic-rs-makes-antminer/python",
     "asic-rs-makes-auradine/python",
     "asic-rs-makes-avalon/python",
@@ -167,6 +173,7 @@ python = [
 
 [dependencies]
 asic-rs-core.workspace = true
+asic-rs-pydantic = { workspace = true, optional = true }
 
 asic-rs-makes-antminer.workspace = true
 asic-rs-makes-auradine.workspace = true

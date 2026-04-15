@@ -1,8 +1,8 @@
 use pyo3::prelude::*;
 
-mod data;
 mod factory;
 mod miner;
+mod typing;
 
 #[pymodule(module = "asic_rs")]
 mod asic_rs {
@@ -17,10 +17,28 @@ mod asic_rs {
     #[pymodule_export]
     use asic_rs_core::data::device::HashAlgorithm;
     #[pymodule_export]
-    use asic_rs_core::data::hashrate::HashRateUnit;
+    use asic_rs_core::data::hashrate::{HashRate, HashRateUnit};
+    #[pymodule_export]
+    use asic_rs_core::data::miner::MiningMode;
 
     #[pymodule_export]
     use super::factory::MinerFactory;
     #[pymodule_export]
     use super::miner::Miner;
+    #[pymodule_export]
+    use asic_rs_core::config::{
+        fan::{FanConfig, FanMode},
+        pools::{PoolConfig as Pool, PoolGroupConfig as PoolGroup},
+        scaling::ScalingConfig,
+        tuning::TuningConfig,
+    };
+    #[pymodule_export]
+    use asic_rs_core::data::{
+        board::{BoardData, ChipData, MinerControlBoard},
+        device::{DeviceInfo, MinerHardware},
+        fan::FanData,
+        message::{MessageSeverity, MinerMessage},
+        miner::MinerData,
+        pool::{PoolData, PoolGroupData, PoolScheme, PoolURL},
+    };
 }
