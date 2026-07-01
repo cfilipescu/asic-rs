@@ -28,6 +28,7 @@ use asic_rs_core::{
 };
 use asic_rs_makes_antminer::hardware::AntMinerControlBoard;
 use asic_rs_makes_epic::hardware::EPicControlBoard;
+use asic_rs_makes_volcminer::{hardware::VolcMinerControlBoard, make::VolcMinerMake};
 use async_trait::async_trait;
 use macaddr::MacAddr;
 use measurements::{AngularVelocity, Frequency, Power, Temperature, Voltage};
@@ -488,6 +489,20 @@ impl GetControlBoardVersion for PowerPlayV1 {
             return Some(cb.into());
         }
 
+        let is_volcminer_model = self.device_info.make == VolcMinerMake::default().to_string();
+
+        if let Some(platform) =
+            data.extract_nested::<String>(DataField::ControlBoardVersion, "platform")
+        {
+            let is_volcminer_platform = platform.trim().eq_ignore_ascii_case("TVXilinx");
+
+            if (is_volcminer_platform || is_volcminer_model)
+                && let Some(cb) = VolcMinerControlBoard::parse(&platform)
+            {
+                return Some(cb.into());
+            }
+        }
+
         if let Some(cb) =
             data.extract_nested::<AntMinerControlBoard>(DataField::ControlBoardVersion, "platform")
         {
@@ -496,6 +511,7 @@ impl GetControlBoardVersion for PowerPlayV1 {
 
         // Fallback for older versions that do not have platform.
         let cb_type = data.extract_nested::<String>(DataField::ControlBoardVersion, "cpu")?;
+
         match cb_type.as_str() {
             s if s.to_uppercase().contains("AMLOGIC") => {
                 Some(AntMinerControlBoard::AMLogic).map(|cb| cb.into())
@@ -504,6 +520,10 @@ impl GetControlBoardVersion for PowerPlayV1 {
                 Some(AntMinerControlBoard::BeagleBoneBlack).map(|cb| cb.into())
             }
             s if s.to_uppercase().contains("XILINX") => {
+                if is_volcminer_model && let Some(cb) = VolcMinerControlBoard::parse(s) {
+                    return Some(cb.into());
+                }
+
                 Some(AntMinerControlBoard::Xilinx).map(|cb| cb.into())
             }
             _ => Some(EPicControlBoard::EPicUMC).map(|cb| cb.into()),
